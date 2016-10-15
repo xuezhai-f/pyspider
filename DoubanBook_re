@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 23 16:43:58 2014
-@author: Administrator
-"""
+
 import re
 import urllib.request
 import time
@@ -10,21 +7,21 @@ import json
 
 class Book:
     def __init__(self, JsonInfo):
-        if JsonInfo.has_key('title'):
+        if 'title' in JsonInfo:
             self.Name = JsonInfo['title']
-        if JsonInfo.has_key('rating') and JsonInfo['rating'].has_key('average'):
+        if 'rating'in JsonInfo and 'average' in JsonInfo['rating']:
             self.Rate = JsonInfo['rating']['average']
-        if JsonInfo.has_key('rating') and JsonInfo['rating'].has_key('numRaters'):
+        if 'rating' in JsonInfo and 'numRaters' in JsonInfo['rating']:
             self.RateNum = JsonInfo['rating']['numRaters']
-        if JsonInfo.has_key('pages'):
+        if 'pages' in JsonInfo:
             self.Page = JsonInfo['pages']
-        if JsonInfo.has_key('price'):
+        if 'price' in JsonInfo:
             self.Price = JsonInfo['price']
-        if JsonInfo.has_key('pubdate'):
+        if 'pubdate' in JsonInfo:
             self.Pubdate = JsonInfo['pubdate']
-        if JsonInfo.has_key('publisher'):
+        if 'publisher' in JsonInfo:
             self.Publisher = JsonInfo['publisher']
-        if JsonInfo.has_key('id'):
+        if 'id' in JsonInfo:
             self.Id = JsonInfo['id']
 
     Name = None
@@ -37,7 +34,8 @@ class Book:
     Id = None
 
 def GetRE(content, regexp):
-    return re.findall(regexp, content)
+    s = re.findall(regexp, content)
+    return s
 
 def GetContent(url):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36'}
@@ -51,7 +49,7 @@ def GetContent(url):
             time.sleep(5)
         if flag == 1:
             break
-    return content.decode('utf8', 'ignore').encode('gbk', 'ignore')
+    return content.decode('utf8')
 
 def GetAllTagList():
     """
@@ -59,7 +57,7 @@ def GetAllTagList():
     获取全部分类列表
     """
     content = GetContent("http://book.douban.com/tag/")
-    regexp = r"<td><a href=\"./(.+)\">\1"
+    regexp = "<td><a href=\"/tag/(.+)\">"
     return GetRE(content, regexp)
 
 def GetBookWithTag(tag):
@@ -77,7 +75,7 @@ def GetBookWithTag(tag):
         if cut_idx >= 0:
             content = content[:cut_idx]
         # 提取书本ID
-        regexp = r"http://book.douban.com/subject/(\d+)/\""
+        regexp = "https://book.douban.com/subject/(\d+)/\""
         # 去重
         BookIdList = list(set(GetRE(content, regexp)))
         if len(BookIdList) != 0:
@@ -94,25 +92,26 @@ def getBookInfo(id):
     """
     url = 'https://api.douban.com/v2/book/' + id
     content = GetContent(url)
-    JsonInfo = json.loads(content.decode('gbk', 'ignore').encode('utf8', 'ignore'))
+    JsonInfo = json.loads(content)
     book = Book(JsonInfo)
     return book
 
 def WriteItem(fh, book):
-    fh.write('%s\n' % book.Name.encode('gbk', 'ignore'))
-    fh.write('\tId:%s\n' % book.Id.encode('gbk', 'ignore'))
-    fh.write('\tRate:%s\n' % book.Rate.encode('gbk', 'ignore'))
+    fh.write('%s\n' % book.Name)
+    fh.write('\tId:%s\n' % book.Id)
+    fh.write('\tRate:%s\n' % book.Rate)
     fh.write('\tRate Number:%d\n' % book.RateNum)
-    fh.write('\tPrice:%s\n' % book.Price.encode('gbk', 'ignore'))
-    fh.write('\tPublish Date:%s\n' % book.Pubdate.encode('gbk', 'ignore'))
-    fh.write('\tPublisher:%s\n\n' % book.Publisher.encode('gbk', 'ignore'))
+    fh.write('\tPrice:%s\n' % book.Price)
+    fh.write('\tPublish Date:%s\n' % book.Pubdate)
+    fh.write('\tPublisher:%s\n\n' % book.Publisher)
 
 def GetAllIdOfBook():
     taglist = GetAllTagList()
     f = open('BookId.txt', 'w')
-    for tag in taglist[0]:
+    for tag in taglist:
         f.write('%s\n' % (tag))
-        tag = urllib.request.quote(tag.decode('gbk', 'ignore').encode('utf8', 'ignore'))
+
+        tag = urllib.request.quote(tag, encoding='utf-8')
         BookIdList = GetBookWithTag(tag)
         for BookId in BookIdList:
             f.write('\t%s\n' % (BookId))
@@ -131,13 +130,11 @@ def scrawlAllBook():
     file_h = open('book_detail.txt', 'a+')
     for bookid in BookIdList:
         BookInfo = getBookInfo(bookid)
-        #print
-        BookInfo.Id, BookInfo.Name.encode('gbk', 'ignore')
         WriteItem(file_h, BookInfo)
         time.sleep(2)
 
 
 if __name__ == "__main__":
     # 爬取所有书ID保存到文件中
-    #    GetAllIdOfBook()
+    GetAllIdOfBook()
     scrawlAllBook()
